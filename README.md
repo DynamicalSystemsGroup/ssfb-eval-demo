@@ -2,7 +2,7 @@
 
 A minimal demonstration of **semantic state feedback** — a framework for evaluating LLM consistency using ontology-grounded probing. The system treats an LLM as a dynamical system with hidden state, applies a policy parameterized by the [APOLLO-SV](http://purl.obolibrary.org/obo/apollo_sv.owl) OWL ontology, and scores responses for consistency against ontological facts derived via OWL reasoning.
 
-For the theoretical framing, see [`semantic_state_feedback_policy.md`](semantic_state_feedback_policy.md).
+For the theoretical framing, see [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md).
 
 ## How It Works
 
@@ -57,6 +57,9 @@ python demo.py --runs 1 --verbose
 
 # Use a different model
 python demo.py --runs 5 --model qwen2.5:7b
+
+# Summary statistics for a completed experiment
+python summary_stats.py trajectories/batch_25
 ```
 
 ### Analysis Notebook
@@ -140,12 +143,16 @@ apollo_eval/
     ontology_loader.py   # OWL loading, reasoning, preprocessing
     vocab.py             # Vocabulary extraction and PhraseMatcher construction
     question.py          # Question base class and concrete subclasses
+    question_loader.py   # 25 concrete questions for measles epidemic scenario
     policy.py            # Semantic state feedback policy engine
     model_client.py      # LLM client abstraction (Ollama implementation)
     evaluation.py        # Post-hoc scoring and DataFrame construction
     utils.py             # Trajectory lookup utility
 demo.py                  # End-to-end CLI orchestration
+summary_stats.py         # Post-hoc summary statistics for completed experiments
 calibrate_threshold.py   # Similarity threshold calibration tool
 analysis.ipynb           # Jupyter notebook — run experiment + visualize results
+trajectories/            # Trajectory JSON output (one dir per experiment batch)
+docs/                    # Design documents and future considerations
 tests/                   # pytest test suite (one file per module)
 ```

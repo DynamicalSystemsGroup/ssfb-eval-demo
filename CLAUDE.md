@@ -16,8 +16,11 @@ apollo_eval/
     evaluation.py        # EvaluationLayer — post-hoc scoring, summaries, DataFrame
     utils.py             # lookup() utility
 demo.py                  # End-to-end CLI orchestration
+summary_stats.py         # Post-hoc summary statistics for completed experiments
 calibrate_threshold.py   # Similarity threshold calibration tool
 analysis.ipynb           # Jupyter notebook — run experiment + visualize results
+trajectories/            # Trajectory JSON output (one dir per experiment batch)
+docs/                    # Design documents and future considerations
 ```
 
 ## Environment
@@ -31,6 +34,7 @@ analysis.ipynb           # Jupyter notebook — run experiment + visualize resul
 
 - Run tests: `.venv/bin/pytest`
 - Run demo: `.venv/bin/python demo.py --runs 5 --verbose`
+- Summary stats: `.venv/bin/python summary_stats.py trajectories/batch_25`
 - Run analysis notebook: `jupyter notebook analysis.ipynb`
 - Calibrate similarity threshold: `.venv/bin/python calibrate_threshold.py --threshold 0.65`
 - Install deps: `uv pip install -r requirements.txt`
