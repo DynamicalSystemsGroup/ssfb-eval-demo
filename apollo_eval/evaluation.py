@@ -56,6 +56,7 @@ class EvaluationLayer:
         rows = []
         for trajectory in self.load_trajectories():
             run_id = trajectory["run_id"]
+            seed = trajectory.get("seed")
             for turn in trajectory["turns"]:
                 question = self.question_map[turn["question_id"]]
                 result = question.score(turn["y"])
@@ -63,6 +64,7 @@ class EvaluationLayer:
                     "question_id": turn["question_id"],
                     "question_type": question_type(question),
                     "run_id": run_id,
+                    "seed": seed,
                     "position_index": turn["position_index"],
                     "parse_success": result.parse_success,
                     "score": result.score if result.parse_success else float("nan"),

@@ -123,7 +123,7 @@ class TestBuildDataFrame:
         ])
         evaluator = EvaluationLayer(str(tmp_path), [_StubCM("q1")])
         df = evaluator.build_dataframe()
-        assert set(df.columns) == {"question_id", "question_type", "run_id", "position_index", "parse_success", "score", "fuzz"}
+        assert set(df.columns) == {"question_id", "question_type", "run_id", "seed", "position_index", "parse_success", "score", "fuzz"}
 
     # Req: question_type column has correct values
     def test_question_type_column(self, tmp_path):
