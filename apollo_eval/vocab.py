@@ -31,7 +31,10 @@ class OntologyVocabularyBuilder:
 
     def build(self) -> Ontology:
         labels = self._extract_labels()
-        nlp = spacy.blank("en")
+        # en_core_web_sm provides tokenizer, tagger, parser, and NER — needed
+        # for dependency-based negation detection in response scoring.
+        # PhraseMatcher works the same way on top of the full pipeline.
+        nlp = spacy.load("en_core_web_sm")
         matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
 
         for label in labels:
