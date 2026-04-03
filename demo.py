@@ -35,6 +35,8 @@ def main():
                         help="Similarity threshold for fuzzy matching (default: 1.0 = exact only)")
     parser.add_argument("--seed", type=int, default=0,
                         help="Base random seed; each run uses seed+i (default: 0)")
+    parser.add_argument("--verbose", "-v", action="store_true",
+                        help="Print each question and response as it happens")
     args = parser.parse_args()
 
     # 1. Load ontology → reason → build vocabulary
@@ -59,6 +61,12 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # 5. Run N trajectories
+    def print_turn(turn):
+        score_str = f"{turn['score']:.1f}" if turn["parse_success"] else "N/A"
+        print(f"\n    [{turn['position_index'] + 1}] Q: {turn['u']}")
+        print(f"        A: {turn['y'][:200]}{'...' if len(turn['y']) > 200 else ''}")
+        print(f"        parse={turn['parse_success']}  score={score_str}")
+
     print(f"\nRunning {args.runs} trajectory run(s)...")
     for i in range(args.runs):
         client = OllamaClient()  # fresh per run
@@ -67,7 +75,10 @@ def main():
             client=client,
             seed=args.seed + i,
             scenario_iri=SCENARIO_IRI,
+            on_turn=print_turn if args.verbose else None,
         )
+        if args.verbose:
+            print(f"\n--- Run {i + 1}/{args.runs} (seed={args.seed + i}) ---")
         engine.run()
         path = engine.save(args.output_dir)
         print(f"  Run {i + 1}/{args.runs}: {engine.run_id} → {path}")

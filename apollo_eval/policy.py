@@ -35,12 +35,14 @@ class PolicyEngine:
         seed: int,
         scenario_iri: str,
         exit_criteria: Callable[[list], bool] = default_exit_criteria,
+        on_turn: Callable[[dict], None] | None = None,
     ):
         self.questions = list(questions)  # defensive copy — this IS the memory pool
         self.client = client
         self.seed = seed
         self.scenario_iri = scenario_iri
         self.exit_criteria = exit_criteria
+        self.on_turn = on_turn
         self._rng = random.Random(seed)
         self.run_id = str(uuid.uuid4())
         self.history: list[tuple[str, str]] = []
@@ -75,6 +77,10 @@ class PolicyEngine:
         # Update state
         self.history.append((question.prompt, response))
         self.trajectory.append(turn)
+
+        if self.on_turn is not None:
+            self.on_turn(turn)
+
         return turn
 
     def run(self) -> dict:
