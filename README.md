@@ -22,7 +22,7 @@ For the theoretical framing, see [`semantic_state_feedback_policy.md`](semantic_
 - [Ollama](https://ollama.com) running locally with a Qwen model pulled:
 
   ```bash
-  ollama pull qwen2.5:7b
+  ollama pull llama3.2:1b
   ```
 
 ## Installation
@@ -86,7 +86,7 @@ python calibrate_threshold.py --interactive
 | Variable | Default | Description |
 | --- | --- | --- |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API base URL |
-| `OLLAMA_MODEL` | `qwen2.5:7b` | Model name for Ollama |
+| `OLLAMA_MODEL` | `llama3.2:1b` | Model name for Ollama |
 
 ## Output
 

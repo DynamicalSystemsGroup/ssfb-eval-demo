@@ -29,7 +29,7 @@ class OllamaClient(ModelClient):
 
     Configuration via constructor args or environment variables:
       OLLAMA_BASE_URL — default http://localhost:11434
-      OLLAMA_MODEL    — default qwen2.5:7b
+      OLLAMA_MODEL    — default llama3.2:1b
     """
 
     def __init__(self, base_url: str | None = None, model: str | None = None):
