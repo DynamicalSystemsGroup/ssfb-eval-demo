@@ -1,0 +1,19 @@
+[project]
+name = "apollo-eval"
+version = "0.1.0"
+description = "Semantic state feedback evaluation system for LLMs using APOLLO-SV ontology"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "rdflib>=7.0",
+    "owlrl>=6.0",
+    "spacy>=3.7",
+    "pyshacl>=0.26",
+    "pandas>=2.1",
+    "requests>=2.31",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
