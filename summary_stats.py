@@ -46,17 +46,8 @@ def main():
     if similarity_threshold is None:
         similarity_threshold = sample.get("similarity_threshold", 1.0)
 
-    # Print metadata if available
     meta_fields = ["model", "ontology_source", "similarity_threshold", "exit_criteria"]
     has_meta = any(k in sample for k in meta_fields)
-    if has_meta:
-        print(f"{'=' * 60}")
-        print("EXPERIMENT METADATA")
-        print(f"{'=' * 60}")
-        for k in meta_fields:
-            if k in sample:
-                print(f"  {k}: {sample[k]}")
-        print()
 
     # Load ontology and build questions
     print("Loading ontology...", end=" ", flush=True)
@@ -75,39 +66,59 @@ def main():
     df = evaluator.build_dataframe()
     exp = evaluator.experiment_summary(df)
 
-    print(f"\n{'=' * 60}")
-    print("EXPERIMENT SUMMARY")
-    print(f"{'=' * 60}")
-    print(f"Directory: {experiment_dir}")
-    print(f"Total turns: {exp['total_turns']}")
-    print(f"Runs: {exp['n_runs']}  |  Questions: {exp['n_questions']}")
-    print(f"Parse rate: {exp['parse_rate']:.1%}")
-    print(f"Overall consistency: {exp['consistency_rate']:.1%}")
+    # Build report
+    lines = []
+
+    if has_meta:
+        lines.append(f"{'=' * 60}")
+        lines.append("EXPERIMENT METADATA")
+        lines.append(f"{'=' * 60}")
+        for k in meta_fields:
+            if k in sample:
+                lines.append(f"  {k}: {sample[k]}")
+        lines.append("")
+
+    lines.append(f"{'=' * 60}")
+    lines.append("EXPERIMENT SUMMARY")
+    lines.append(f"{'=' * 60}")
+    lines.append(f"Directory: {experiment_dir}")
+    lines.append(f"Total turns: {exp['total_turns']}")
+    lines.append(f"Runs: {exp['n_runs']}  |  Questions: {exp['n_questions']}")
+    lines.append(f"Parse rate: {exp['parse_rate']:.1%}")
+    lines.append(f"Overall consistency: {exp['consistency_rate']:.1%}")
     for qt in ("CM", "PR", "DJ"):
         cr = exp[f"{qt}_consistency_rate"]
         pfr = exp[f"{qt}_parse_failure_rate"]
         cr_str = f"{cr:.1%}" if cr == cr else "N/A"
-        print(f"  {qt}: consistency={cr_str}  parse_failure={pfr:.1%}")
+        lines.append(f"  {qt}: consistency={cr_str}  parse_failure={pfr:.1%}")
 
-    print(f"\n{'=' * 60}")
-    print("CONSISTENCY BY QUESTION TYPE")
-    print(f"{'=' * 60}")
-    print(evaluator.summary_by_question_type(df).to_string())
+    lines.append(f"\n{'=' * 60}")
+    lines.append("CONSISTENCY BY QUESTION TYPE")
+    lines.append(f"{'=' * 60}")
+    lines.append(evaluator.summary_by_question_type(df).to_string())
 
-    print(f"\n{'=' * 60}")
-    print("CONSISTENCY BY QUESTION")
-    print(f"{'=' * 60}")
-    print(evaluator.summary_by_question(df).to_string())
+    lines.append(f"\n{'=' * 60}")
+    lines.append("CONSISTENCY BY QUESTION")
+    lines.append(f"{'=' * 60}")
+    lines.append(evaluator.summary_by_question(df).to_string())
 
-    print(f"\n{'=' * 60}")
-    print("CONSISTENCY BY POSITION")
-    print(f"{'=' * 60}")
-    print(evaluator.summary_by_position(df).to_string())
+    lines.append(f"\n{'=' * 60}")
+    lines.append("CONSISTENCY BY POSITION")
+    lines.append(f"{'=' * 60}")
+    lines.append(evaluator.summary_by_position(df).to_string())
 
-    print(f"\n{'=' * 60}")
-    print("CONSISTENCY BY RUN")
-    print(f"{'=' * 60}")
-    print(evaluator.summary_by_run(df).to_string())
+    lines.append(f"\n{'=' * 60}")
+    lines.append("CONSISTENCY BY RUN")
+    lines.append(f"{'=' * 60}")
+    lines.append(evaluator.summary_by_run(df).to_string())
+
+    report = "\n".join(lines)
+    print(report)
+
+    # Save to experiment directory
+    report_path = experiment_dir / "summary_stats.txt"
+    report_path.write_text(report + "\n")
+    print(f"\nSaved to {report_path}")
 
 
 if __name__ == "__main__":
