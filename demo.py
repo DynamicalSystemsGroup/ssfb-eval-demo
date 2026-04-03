@@ -91,30 +91,40 @@ def main():
     df = evaluator.build_dataframe()
 
     # 7. Print summaries
+    exp = evaluator.experiment_summary(df)
+
     print(f"\n{'=' * 60}")
-    print("CONSISTENCY RATE BY QUESTION")
+    print("EXPERIMENT SUMMARY")
+    print('=' * 60)
+    print(f"Total turns: {exp['total_turns']}")
+    print(f"Runs: {exp['n_runs']}  |  Questions: {exp['n_questions']}")
+    print(f"Parse rate: {exp['parse_rate']:.1%}")
+    print(f"Overall consistency: {exp['consistency_rate']:.1%}")
+    for qt in ("CM", "PR", "DJ"):
+        cr = exp[f"{qt}_consistency_rate"]
+        pfr = exp[f"{qt}_parse_failure_rate"]
+        cr_str = f"{cr:.1%}" if cr == cr else "N/A"  # NaN check
+        print(f"  {qt}: consistency={cr_str}  parse_failure={pfr:.1%}")
+
+    print(f"\n{'=' * 60}")
+    print("CONSISTENCY BY QUESTION TYPE")
+    print('=' * 60)
+    print(evaluator.summary_by_question_type(df).to_string())
+
+    print(f"\n{'=' * 60}")
+    print("CONSISTENCY BY QUESTION")
     print('=' * 60)
     print(evaluator.summary_by_question(df).to_string())
 
     print(f"\n{'=' * 60}")
-    print("CONSISTENCY RATE BY POSITION")
+    print("CONSISTENCY BY POSITION")
     print('=' * 60)
     print(evaluator.summary_by_position(df).to_string())
 
     print(f"\n{'=' * 60}")
-    print("CONSISTENCY RATE BY RUN")
+    print("CONSISTENCY BY RUN")
     print('=' * 60)
     print(evaluator.summary_by_run(df).to_string())
-
-    # Overall stats
-    n_turns = len(df)
-    n_parsed = df["parse_success"].sum()
-    n_consistent = (df["score"] == 1.0).sum()
-    print(f"\n{'=' * 60}")
-    print(f"Total turns: {n_turns}")
-    print(f"Parse success: {n_parsed}/{n_turns} ({100 * n_parsed / n_turns:.1f}%)")
-    if n_parsed > 0:
-        print(f"Consistency (of parsed): {n_consistent}/{n_parsed} ({100 * n_consistent / n_parsed:.1f}%)")
 
 
 if __name__ == "__main__":
