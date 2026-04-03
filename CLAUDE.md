@@ -21,7 +21,7 @@ demo.py                  # End-to-end orchestration script
 ## Environment
 
 - Python 3.12 via uv-managed venv (`.venv/`)
-- Ollama running locally at `localhost:11434` with `qwen2.5:7b`
+- Ollama running locally at `localhost:11434` with `llama3.2:1b` (default; configurable via `--model`)
 - spaCy model: `en_core_web_md` (300D word vectors for similarity matching)
 - Similarity threshold: configurable via `Ontology.similarity_threshold` (1.0 = exact only, 0.65 recommended for fuzzy)
 

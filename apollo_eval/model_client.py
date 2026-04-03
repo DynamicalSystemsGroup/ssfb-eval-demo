@@ -36,7 +36,7 @@ class OllamaClient(ModelClient):
         self.base_url = base_url or os.environ.get(
             "OLLAMA_BASE_URL", "http://localhost:11434"
         )
-        self.model = model or os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
+        self.model = model or os.environ.get("OLLAMA_MODEL", "llama3.2:1b")
 
     def complete(self, history: list[tuple[str, str]], prompt: str) -> str:
         messages = []

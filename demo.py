@@ -35,6 +35,8 @@ def main():
                         help="Similarity threshold for fuzzy matching (default: 1.0 = exact only)")
     parser.add_argument("--seed", type=int, default=0,
                         help="Base random seed; each run uses seed+i (default: 0)")
+    parser.add_argument("--model", type=str, default=None,
+                        help="Ollama model name (default: OLLAMA_MODEL or llama3.2:1b)")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Print each question and response as it happens")
     args = parser.parse_args()
@@ -69,7 +71,7 @@ def main():
 
     print(f"\nRunning {args.runs} trajectory run(s)...")
     for i in range(args.runs):
-        client = OllamaClient()  # fresh per run
+        client = OllamaClient(model=args.model)  # fresh per run
         engine = PolicyEngine(
             questions=questions,
             client=client,

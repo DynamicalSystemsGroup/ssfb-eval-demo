@@ -33,7 +33,7 @@ class TestOllamaClientDefaults:
     # Req: Model name configurable via OLLAMA_MODEL env var
     def test_default_model(self):
         client = OllamaClient()
-        assert client.model == "qwen2.5:7b"
+        assert client.model == "llama3.2:1b"
 
     def test_env_override_model(self, monkeypatch):
         monkeypatch.setenv("OLLAMA_MODEL", "llama3:8b")
