@@ -39,8 +39,8 @@ source .venv/bin/activate
 # Install dependencies
 uv pip install -r requirements.txt
 
-# Download spaCy model
-python -m spacy download en_core_web_sm
+# Download spaCy model (md for word vectors used in similarity matching)
+python -m spacy download en_core_web_md
 ```
 
 ## Usage
@@ -51,6 +51,24 @@ python demo.py
 
 # Customize the run
 python demo.py --runs 10 --output-dir ./my_trajectories --seed 42
+```
+
+### Calibrating Similarity Threshold
+
+The extraction pipeline supports fuzzy matching via word vector similarity. Use the calibration script to empirically validate synonym pairs and tune the threshold:
+
+```bash
+# Show all built-in synonym pairs with a threshold sweep
+python calibrate_threshold.py
+
+# Show accept/reject decisions at a specific threshold
+python calibrate_threshold.py --threshold 0.65
+
+# Test custom synonym pairs
+python calibrate_threshold.py --pairs "epidemic:outbreak" "vaccine:jab"
+
+# Interactive mode for ad-hoc testing
+python calibrate_threshold.py --interactive
 ```
 
 ### CLI Arguments
@@ -99,5 +117,6 @@ apollo_eval/
     evaluation.py        # Post-hoc scoring and DataFrame construction
     utils.py             # Trajectory lookup utility
 demo.py                  # End-to-end orchestration
+calibrate_threshold.py   # Similarity threshold calibration tool
 tests/                   # pytest test suite (one file per module)
 ```

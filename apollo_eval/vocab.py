@@ -29,12 +29,12 @@ class OntologyVocabularyBuilder:
     def __init__(self, graph: rdflib.Graph):
         self.graph = graph
 
-    def build(self) -> Ontology:
+    def build(self, similarity_threshold: float = 1.0) -> Ontology:
         labels = self._extract_labels()
-        # en_core_web_sm provides tokenizer, tagger, parser, and NER — needed
-        # for dependency-based negation detection in response scoring.
-        # PhraseMatcher works the same way on top of the full pipeline.
-        nlp = spacy.load("en_core_web_sm")
+        # en_core_web_md provides tokenizer, tagger, parser, NER, and 300D word
+        # vectors. Vectors are needed for similarity-based fallback extraction.
+        # PhraseMatcher handles exact matching; vectors handle fuzzy matching.
+        nlp = spacy.load("en_core_web_md")
         matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
 
         for label in labels:
@@ -44,7 +44,13 @@ class OntologyVocabularyBuilder:
             patterns = [nlp.make_doc(label) for label in labels]
             matcher.add("ONTOLOGY_TERM", patterns)
 
-        return Ontology(graph=self.graph, nlp=nlp, matcher=matcher)
+        return Ontology(
+            graph=self.graph,
+            nlp=nlp,
+            matcher=matcher,
+            vocab_labels=labels,
+            similarity_threshold=similarity_threshold,
+        )
 
     def _extract_labels(self) -> list[str]:
         """Extract all label strings from the graph via annotation properties."""

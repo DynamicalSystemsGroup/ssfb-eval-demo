@@ -86,34 +86,39 @@ class TestExtraction:
     # Req: extraction maps response text to valid RDF terms from controlled vocabulary
     def test_extracts_single_word_term(self):
         q = _StubQuestion("q-001", "prompt")
-        terms = q._extract_terms("The patient received vaccination.")
+        terms, fuzz = q._extract_terms("The patient received vaccination.")
         assert "vaccination" in terms
+        assert fuzz is False  # exact match
 
     # Req: extraction recognizes multi-word ontology labels
     def test_extracts_multi_word_term(self):
         q = _StubQuestion("q-001", "prompt")
-        terms = q._extract_terms("Measles is an infectious disease.")
+        terms, fuzz = q._extract_terms("Measles is an infectious disease.")
         assert "infectious disease" in terms
+        assert fuzz is False
 
     # Req: extraction finds multiple terms in a single response
     def test_extracts_multiple_terms(self):
         q = _StubQuestion("q-001", "prompt")
-        terms = q._extract_terms("Measles is an infectious disease spread by airborne transmission.")
+        terms, fuzz = q._extract_terms("Measles is an infectious disease spread by airborne transmission.")
         assert "measles" in terms
         assert "infectious disease" in terms
         assert "airborne" in terms
+        assert fuzz is False
 
     # Req: extraction returns empty list when no ontology terms found
     def test_returns_empty_for_no_matches(self):
         q = _StubQuestion("q-001", "prompt")
-        terms = q._extract_terms("The weather is sunny today.")
+        terms, fuzz = q._extract_terms("The weather is sunny today.")
         assert terms == []
+        assert fuzz is None  # non-parse
 
     # Req: extraction is case-insensitive (grounding step, not exact match)
     def test_case_insensitive_extraction(self):
         q = _StubQuestion("q-001", "prompt")
-        terms = q._extract_terms("MEASLES is a well-known condition.")
+        terms, fuzz = q._extract_terms("MEASLES is a well-known condition.")
         assert "measles" in terms
+        assert fuzz is False
 
     # Req: parse failures (no extraction) do not raise — score returns parse_success=False
     def test_parse_failure_returns_false(self):

@@ -10,7 +10,7 @@ def _make_ontology():
     graph = rdflib.Graph()
     nlp = spacy.blank("en")
     matcher = PhraseMatcher(nlp.vocab)
-    return Ontology(graph=graph, nlp=nlp, matcher=matcher)
+    return Ontology(graph=graph, nlp=nlp, matcher=matcher, vocab_labels=[])
 
 
 class TestOntology:

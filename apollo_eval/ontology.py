@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import rdflib
 import spacy
@@ -17,6 +17,20 @@ class Ontology:
     graph: rdflib.Graph
     nlp: spacy.Language
     matcher: PhraseMatcher
+    vocab_labels: list[str]
+    similarity_threshold: float = 1.0  # 1.0 = exact match only, lower = fuzzy
+
+    _vocab_docs: dict | None = field(default=None, repr=False, init=False)
+
+    def get_vocab_docs(self) -> dict:
+        """Lazily compute and cache Doc objects for all vocab labels.
+
+        Only called when similarity_threshold < 1.0. Each label is processed
+        through the full NLP pipeline once and cached for reuse.
+        """
+        if self._vocab_docs is None:
+            self._vocab_docs = {label: self.nlp(label) for label in self.vocab_labels}
+        return self._vocab_docs
 
 
 @dataclass
@@ -31,3 +45,4 @@ class ScoreResult:
     question_id: str
     parse_success: bool
     score: float
+    fuzz: bool | None = None  # False=exact, True=similarity fallback, None=non-parse

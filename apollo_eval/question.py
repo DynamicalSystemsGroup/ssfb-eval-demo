@@ -41,12 +41,13 @@ class Question(ABC):
         Returns ScoreResult with parse_success=False if no terms could be
         extracted. Never raises exceptions.
         """
-        terms = self._extract_terms(response)
+        terms, fuzz = self._extract_terms(response)
         if not terms:
             return ScoreResult(
                 question_id=self.question_id,
                 parse_success=False,
                 score=0.0,
+                fuzz=None,
             )
         is_negated = self._detect_negation(response)
         consistent = self._check(terms, is_negated)
@@ -54,16 +55,24 @@ class Question(ABC):
             question_id=self.question_id,
             parse_success=True,
             score=1.0 if consistent else 0.0,
+            fuzz=fuzz,
         )
 
-    def _extract_terms(self, response: str) -> list[str]:
+    def _extract_terms(self, response: str) -> tuple[list[str], bool | None]:
         """Extract ontology-grounded terms from response text.
 
-        Uses spaCy PhraseMatcher for NER against the ontology's controlled
-        vocabulary. This is a grounding step, not a similarity step.
+        Two-stage extraction:
+        1. Exact match via PhraseMatcher (always runs)
+        2. Similarity fallback (only when threshold < 1.0 AND stage 1 found nothing)
+
+        Returns (terms, fuzz) where fuzz is False for exact match, True for
+        similarity fallback, or None if no terms were found.
         """
         doc = self.ontology.nlp(response)
+
+        # Stage 1: Exact PhraseMatcher
         matches = self.ontology.matcher(doc)
+        matched_indices = set()
         seen = set()
         terms = []
         for _, start, end in matches:
@@ -71,6 +80,60 @@ class Question(ABC):
             if text not in seen:
                 seen.add(text)
                 terms.append(text)
+            for i in range(start, end):
+                matched_indices.add(i)
+
+        if terms:
+            return terms, False
+
+        # Stage 2: Similarity fallback (only when exact match found nothing)
+        threshold = self.ontology.similarity_threshold
+        if threshold < 1.0:
+            terms = self._similarity_fallback(doc, matched_indices, seen, threshold)
+            if terms:
+                return terms, True
+
+        return [], None
+
+    def _similarity_fallback(
+        self, doc, matched_indices: set, seen: set, threshold: float
+    ) -> list[str]:
+        """Find ontology terms via vector similarity for unmatched tokens.
+
+        For single-word labels: best token-to-token cosine similarity.
+        For multi-word labels: sliding-window Doc-to-Doc similarity.
+        """
+        vocab_docs = self.ontology.get_vocab_docs()
+        terms = []
+
+        for label, label_doc in vocab_docs.items():
+            if label in seen:
+                continue
+
+            best_sim = 0.0
+
+            if len(label_doc) == 1:
+                for i, token in enumerate(doc):
+                    if i in matched_indices or not token.has_vector:
+                        continue
+                    sim = token.similarity(label_doc[0])
+                    if sim > best_sim:
+                        best_sim = sim
+            else:
+                label_len = len(label_doc)
+                for start in range(len(doc) - label_len + 1):
+                    if any(j in matched_indices for j in range(start, start + label_len)):
+                        continue
+                    span = doc[start:start + label_len]
+                    if span.has_vector and label_doc.has_vector:
+                        sim = span.similarity(label_doc)
+                        if sim > best_sim:
+                            best_sim = sim
+
+            if best_sim >= threshold:
+                terms.append(label)
+                seen.add(label)
+
         return terms
 
     def _detect_negation(self, response: str) -> bool:

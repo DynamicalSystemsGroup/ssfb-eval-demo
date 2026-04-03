@@ -158,7 +158,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: SCENARIO.measles_epidemic rdf:type APOLLO_SV:epidemic
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000001",
-        prompt="In the context of infectious disease modeling, what type of event is a measles epidemic?",
+        prompt="How would you classify a measles epidemic in epidemiological terms?",
         entity_iri=SCENARIO.measles_epidemic,
         class_iri=EPIDEMIC,
         entity_label="epidemic",
@@ -169,7 +169,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: epidemic rdfs:subClassOf infection_in_ecosystem
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000002",
-        prompt="A measles epidemic involves infection spreading through a community. Is an epidemic a type of infection in ecosystem?",
+        prompt="What broader category does an epidemic fall under in terms of ecological processes?",
         entity_iri=SCENARIO.measles_epidemic,
         class_iri=INFECTION_IN_ECOSYSTEM,
         entity_label="epidemic",
@@ -180,7 +180,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: SCENARIO.vaccination_strategy rdf:type vaccination_control_strategy
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000003",
-        prompt="What type of control strategy is a vaccination control strategy?",
+        prompt="How is a vaccination program categorized as a public health intervention?",
         entity_iri=SCENARIO.vaccination_strategy,
         class_iri=VACCINATION_CONTROL_STRATEGY,
         entity_label="vaccination control strategy",
@@ -191,7 +191,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: vaccination_control_strategy subClassOf individual_treatment_control_strategy
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000004",
-        prompt="Is a vaccination control strategy a type of individual treatment control strategy?",
+        prompt="What level of intervention does a vaccination control strategy target?",
         entity_iri=SCENARIO.vaccination_strategy,
         class_iri=INDIVIDUAL_TREATMENT_CONTROL_STRATEGY,
         entity_label="vaccination control strategy",
@@ -202,7 +202,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: vaccination_control_strategy subClassOf ... subClassOf infectious_disease_control_strategy
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000005",
-        prompt="Would you classify a vaccination control strategy as an infectious disease control strategy?",
+        prompt="What is the relationship between vaccination strategies and broader disease control frameworks?",
         entity_iri=SCENARIO.vaccination_strategy,
         class_iri=INFECTIOUS_DISEASE_CONTROL_STRATEGY,
         entity_label="vaccination control strategy",
@@ -213,7 +213,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: quarantine_control_strategy subClassOf infectious_disease_control_strategy
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000006",
-        prompt="Is a quarantine control strategy a type of infectious disease control strategy?",
+        prompt="How does quarantine fit within the hierarchy of disease control approaches?",
         entity_iri=SCENARIO.quarantine_strategy,
         class_iri=INFECTIOUS_DISEASE_CONTROL_STRATEGY,
         entity_label="quarantine control strategy",
@@ -224,7 +224,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: SCENARIO.vacc_treatment rdf:type vaccination
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000007",
-        prompt="What is the classification of vaccination as a medical intervention?",
+        prompt="What kind of medical procedure is vaccination?",
         entity_iri=SCENARIO.vacc_treatment,
         class_iri=VACCINATION,
         entity_label="vaccination",
@@ -235,7 +235,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: vaccination subClassOf treatment
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000008",
-        prompt="Is vaccination considered a type of treatment in infectious disease management?",
+        prompt="How is vaccination categorized in clinical practice?",
         entity_iri=SCENARIO.vacc_treatment,
         class_iri=TREATMENT,
         entity_label="vaccination",
@@ -246,7 +246,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: drug_treatment subClassOf treatment
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000009",
-        prompt="Is drug treatment classified as a type of treatment?",
+        prompt="What category does pharmacological intervention fall under in medical ontology?",
         entity_iri=SCENARIO.drug_treatment,
         class_iri=TREATMENT,
         entity_label="drug treatment",
@@ -257,7 +257,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: SCENARIO.measles_pathogen rdf:type pathogen
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000010",
-        prompt="In the measles scenario, what role does the causative agent play? Is it classified as a pathogen?",
+        prompt="What is the role of the measles causative agent in the disease process?",
         entity_iri=SCENARIO.measles_pathogen,
         class_iri=PATHOGEN,
         entity_label="pathogen",
@@ -268,7 +268,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: pathogen subClassOf organism
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000011",
-        prompt="Is a pathogen classified as a type of organism?",
+        prompt="What is the biological classification of a pathogen?",
         entity_iri=SCENARIO.measles_pathogen,
         class_iri=ORGANISM,
         entity_label="pathogen",
@@ -279,7 +279,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: population_infection_survey subClassOf population_survey
     questions.append(ClassMembershipQuestion(
         question_id="c3a1e8f0-0001-4000-8000-000000000012",
-        prompt="Is a population infection survey a type of population survey?",
+        prompt="How would you categorize a population infection survey within epidemiological data collection?",
         entity_iri=SCENARIO.pop_survey,
         class_iri=POPULATION_SURVEY,
         entity_label="population infection survey",
@@ -294,7 +294,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL restriction: infectious_disease_scenario some is_about ecosystem
     questions.append(PropertyRestrictionQuestion(
         question_id="c3a1e8f0-0002-4000-8000-000000000013",
-        prompt="What is an infectious disease scenario about? Does it concern an ecosystem?",
+        prompt="What is the primary subject matter of an infectious disease scenario?",
         entity_iri=SCENARIO.measles_scenario,
         property_iri=IS_ABOUT,
         value_iri=SCENARIO.target_ecosystem,
@@ -306,7 +306,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL restriction: infection_acquisition some causally_upstream_of infection
     questions.append(PropertyRestrictionQuestion(
         question_id="c3a1e8f0-0002-4000-8000-000000000014",
-        prompt="Is infection acquisition causally upstream of infection? Does acquiring an infection lead to the infection process?",
+        prompt="What is the causal relationship between acquiring a pathogen and the resulting disease process?",
         entity_iri=SCENARIO.measles_acquisition,
         property_iri=CAUSALLY_UPSTREAM_OF,
         value_iri=SCENARIO.measles_infection,
@@ -318,7 +318,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL restriction: infection some immediately_preceded_by infection_acquisition
     questions.append(PropertyRestrictionQuestion(
         question_id="c3a1e8f0-0002-4000-8000-000000000015",
-        prompt="Is infection immediately preceded by infection acquisition?",
+        prompt="What process occurs immediately before an infection begins?",
         entity_iri=SCENARIO.measles_infection,
         property_iri=IMMEDIATELY_PRECEDED_BY,
         value_iri=SCENARIO.measles_acquisition,
@@ -330,7 +330,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL restriction: pathogen some bearer_of infectiousness (via pathogenic_disposition)
     questions.append(PropertyRestrictionQuestion(
         question_id="c3a1e8f0-0002-4000-8000-000000000016",
-        prompt="Does a pathogen bear a pathogenic disposition? Is pathogenicity a characteristic of the pathogen?",
+        prompt="What inherent properties does a pathogen possess that enable it to cause disease?",
         entity_iri=SCENARIO.measles_pathogen,
         property_iri=BEARER_OF,
         value_iri=SCENARIO.pathogenic_disposition,
@@ -342,7 +342,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL restriction: vaccination some has_participant (host)
     questions.append(PropertyRestrictionQuestion(
         question_id="c3a1e8f0-0002-4000-8000-000000000017",
-        prompt="Does vaccination have a host as a participant?",
+        prompt="Who are the participants in a vaccination procedure?",
         entity_iri=SCENARIO.vacc_treatment,
         property_iri=HAS_PARTICIPANT,
         value_iri=SCENARIO.human_host,
@@ -354,7 +354,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # Scenario assertion: measles_epidemic occurs_in target_ecosystem
     questions.append(PropertyRestrictionQuestion(
         question_id="c3a1e8f0-0002-4000-8000-000000000018",
-        prompt="Does an epidemic occur in an ecosystem?",
+        prompt="Where does an epidemic take place in ecological terms?",
         entity_iri=SCENARIO.measles_epidemic,
         property_iri=OCCURS_IN,
         value_iri=SCENARIO.target_ecosystem,
@@ -366,7 +366,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # Scenario assertion: measles_acquisition has_participant measles_pathogen
     questions.append(PropertyRestrictionQuestion(
         question_id="c3a1e8f0-0002-4000-8000-000000000019",
-        prompt="Does infection acquisition involve a pathogen as a participant?",
+        prompt="What biological entities participate in the process of infection acquisition?",
         entity_iri=SCENARIO.measles_acquisition,
         property_iri=HAS_PARTICIPANT,
         value_iri=SCENARIO.measles_pathogen,
@@ -378,7 +378,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # Tests that absence of a triple is detected as inconsistent
     questions.append(PropertyRestrictionQuestion(
         question_id="c3a1e8f0-0002-4000-8000-000000000020",
-        prompt="Does vaccination directly involve a pathogen as a participant?",
+        prompt="Does a vaccination procedure directly interact with the disease-causing agent?",
         entity_iri=SCENARIO.vacc_treatment,
         property_iri=HAS_PARTICIPANT,
         value_iri=SCENARIO.measles_pathogen,
@@ -394,7 +394,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: organism owl:disjointWith disorder
     questions.append(DisjointnessQuestion(
         question_id="c3a1e8f0-0003-4000-8000-000000000021",
-        prompt="Can a pathogen, which is an organism, also be classified as a disorder?",
+        prompt="Is there any overlap between the classification of pathogens and disorders?",
         entity_iri=SCENARIO.measles_pathogen,
         disjoint_class_iri=DISORDER,
         entity_label="pathogen",
@@ -405,7 +405,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: pathogenic_disposition owl:disjointWith disease
     questions.append(DisjointnessQuestion(
         question_id="c3a1e8f0-0003-4000-8000-000000000022",
-        prompt="Is a pathogenic disposition the same as a disease? Can something be both?",
+        prompt="What is the relationship between a pathogenic disposition and a disease?",
         entity_iri=SCENARIO.pathogenic_disposition,
         disjoint_class_iri=DISEASE,
         entity_label="pathogenic disposition",
@@ -416,7 +416,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: pathogenic_disposition owl:disjointWith immunocompetence
     questions.append(DisjointnessQuestion(
         question_id="c3a1e8f0-0003-4000-8000-000000000023",
-        prompt="Can a pathogenic disposition also be classified as immunocompetence?",
+        prompt="Is there any ontological overlap between pathogenic disposition and immunocompetence?",
         entity_iri=SCENARIO.pathogenic_disposition,
         disjoint_class_iri=IMMUNOCOMPETENCE,
         entity_label="pathogenic disposition",
@@ -427,7 +427,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: immunocompetence owl:disjointWith disease
     questions.append(DisjointnessQuestion(
         question_id="c3a1e8f0-0003-4000-8000-000000000024",
-        prompt="Can immunocompetence be classified as a disease?",
+        prompt="What is the ontological relationship between a host and disease?",
         entity_iri=SCENARIO.human_host,  # host, not typed as disease
         disjoint_class_iri=DISEASE,
         entity_label="host",
@@ -438,7 +438,7 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     # OWL axiom: material_entity owl:disjointWith immaterial_entity
     questions.append(DisjointnessQuestion(
         question_id="c3a1e8f0-0003-4000-8000-000000000025",
-        prompt="A pathogen is a material entity. Can it also be classified as an immaterial entity?",
+        prompt="What kind of entity is a pathogen — material, immaterial, or both?",
         entity_iri=SCENARIO.measles_pathogen,
         disjoint_class_iri=OBO["BFO_0000141"],  # immaterial entity
         entity_label="pathogen",

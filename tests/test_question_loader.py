@@ -1,11 +1,17 @@
-"""Tests for question_loader.py — all 25 questions with 3 tests each.
+"""Tests for question_loader.py — all 25 questions with 5 tests each.
 
-Each question has:
-- PASS: response agrees with ontology → score 1.0
-- FAIL: response contradicts ontology → score 0.0
-- NON-PARSE: response has no ontology terms → parse_success=False
+Per question:
+1. test_pass_exact — exact ontology labels, affirms → 1.0
+2. test_fail_exact — exact ontology labels, negates → 0.0
+3. test_pass_synonym — synonym words, affirms → 1.0 (similarity_threshold=0.65)
+4. test_fail_synonym — synonym words, negates → 0.0 (similarity_threshold=0.65)
+5. test_nonparse — truly unrelated text → parse_success=False
 
-Uses a small test ontology mirroring APOLLO-SV hierarchy — no download needed.
+Synonym pairs validated against en_core_web_md vectors:
+  epidemic/outbreak (1.0), vaccination/immunization (1.0), disease/illness (1.0),
+  pathogen/microbe (0.76), pathogenic disposition/virulence (0.80),
+  drug treatment/pharmaceutical therapy (0.68), disorder/ailment (0.65),
+  infection in ecosystem/contagion in environment (0.71)
 """
 
 import rdflib
@@ -42,11 +48,10 @@ OBO = Namespace("http://purl.obolibrary.org/obo/")
 IMMATERIAL_ENTITY = OBO["BFO_0000141"]
 
 
-def _build_test_ontology():
+def _build_test_ontology(similarity_threshold: float = 1.0):
     """Build a minimal ontology mirroring the APOLLO-SV hierarchy for testing."""
     g = rdflib.Graph()
 
-    # --- Class hierarchy ---
     g.add((DISEASE, RDF.type, OWL.Class))
     g.add((DISEASE, RDFS.label, Literal("disease")))
     g.add((INFECTIOUS_DISEASE, RDF.type, OWL.Class))
@@ -130,14 +135,12 @@ def _build_test_ontology():
     g.add((IMMATERIAL_ENTITY, RDF.type, OWL.Class))
     g.add((IMMATERIAL_ENTITY, RDFS.label, Literal("immaterial entity")))
 
-    # --- Disjointness ---
     g.add((ORGANISM, OWL.disjointWith, DISORDER))
     g.add((PATHOGENIC_DISPOSITION, OWL.disjointWith, DISEASE))
     g.add((PATHOGENIC_DISPOSITION, OWL.disjointWith, IMMUNOCOMPETENCE))
     g.add((IMMUNOCOMPETENCE, OWL.disjointWith, DISEASE))
     g.add((MATERIAL_ENTITY, OWL.disjointWith, IMMATERIAL_ENTITY))
 
-    # --- Object properties ---
     for prop, label in [
         (IS_ABOUT, "is about"), (CAUSALLY_UPSTREAM_OF, "causally upstream of"),
         (IMMEDIATELY_PRECEDED_BY, "immediately preceded by"),
@@ -147,24 +150,38 @@ def _build_test_ontology():
         g.add((prop, RDF.type, OWL.ObjectProperty))
         g.add((prop, RDFS.label, Literal(label)))
 
-    # Apply reasoning before vocabulary building
     owlrl.DeductiveClosure(owlrl.OWLRL_Semantics).expand(g)
-    return OntologyVocabularyBuilder(g).build()
+    return OntologyVocabularyBuilder(g).build(similarity_threshold=similarity_threshold)
 
+
+# --- Exact-match fixtures (threshold=1.0) ---
 
 @pytest.fixture
 def question_bank():
-    """Build the full question bank against the test ontology."""
-    ontology = _build_test_ontology()
+    ontology = _build_test_ontology(similarity_threshold=1.0)
     Question.ontology = ontology
     questions = build_question_bank(ontology)
     yield questions
     Question.ontology = None
 
-
 @pytest.fixture
 def qmap(question_bank):
     return get_question_map(question_bank)
+
+
+# --- Fuzzy-match fixtures (threshold=0.65) ---
+
+@pytest.fixture
+def question_bank_fuzzy():
+    ontology = _build_test_ontology(similarity_threshold=0.65)
+    Question.ontology = ontology
+    questions = build_question_bank(ontology)
+    yield questions
+    Question.ontology = None
+
+@pytest.fixture
+def qmap_fuzzy(question_bank_fuzzy):
+    return get_question_map(question_bank_fuzzy)
 
 
 # =========================================================================
@@ -184,8 +201,7 @@ class TestQuestionBankStructure:
             assert q.prompt, f"Question {q.question_id} has empty prompt"
 
     def test_question_map(self, question_bank):
-        qmap = get_question_map(question_bank)
-        assert len(qmap) == 25
+        assert len(get_question_map(question_bank)) == 25
 
     def test_scenario_instances_in_graph(self, question_bank):
         graph = Question.ontology.graph
@@ -195,389 +211,489 @@ class TestQuestionBankStructure:
 
 
 # =========================================================================
-# Q1–Q12: Class Membership — pass / fail / non-parse per question
+# Q1–Q12: Class Membership — 5 tests per question
 # =========================================================================
 
 class TestQ01:
     """epidemic instance is an epidemic (direct type)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000001"].score("A measles epidemic is an epidemic event.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000001"].score("A measles epidemic is not an epidemic.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: epidemic → outbreak (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000001"].score("A measles outbreak is a widespread event.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000001"].score("A measles outbreak is not a widespread event.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000001"].score("It is a sudden outbreak of illness.")
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000001"].score("The weather forecast calls for rain tomorrow.")
         assert r.parse_success is False
-
 
 class TestQ02:
     """epidemic is an infection in ecosystem (entailed)"""
-    def test_pass(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000002"].score("Yes, an epidemic is a type of infection in ecosystem.")
+    def test_pass_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000002"].score("An epidemic is a type of infection in ecosystem.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000002"].score("No, an epidemic is not an infection in ecosystem.")
+    def test_fail_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000002"].score("An epidemic is not an infection in ecosystem.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: epidemic → outbreak (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000002"].score("An outbreak is a type of contagion in an environment.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000002"].score("An outbreak is not a contagion in an environment.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000002"].score("It spreads through communities.")
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000002"].score("It spreads through communities rapidly.")
         assert r.parse_success is False
-
 
 class TestQ03:
     """vaccination strategy is a vaccination control strategy (direct)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000003"].score("It is a vaccination control strategy.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000003"].score("It is not a vaccination control strategy.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: vaccination → immunization (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000003"].score("It is an immunization control strategy.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000003"].score("It is not an immunization control strategy.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000003"].score("It is a plan for prevention.")
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000003"].score("It is a plan for public health.")
         assert r.parse_success is False
-
 
 class TestQ04:
     """vaccination control strategy is individual treatment control strategy (entailed)"""
-    def test_pass(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000004"].score("Yes, a vaccination control strategy is an individual treatment control strategy.")
+    def test_pass_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000004"].score("A vaccination control strategy is an individual treatment control strategy.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000004"].score("No, a vaccination control strategy is not an individual treatment control strategy.")
+    def test_fail_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000004"].score("A vaccination control strategy is not an individual treatment control strategy.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: vaccination → immunization (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000004"].score("An immunization control strategy is an individual treatment control strategy.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000004"].score("An immunization control strategy is not an individual treatment control strategy.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000004"].score("It targets specific patients.")
         assert r.parse_success is False
 
-
 class TestQ05:
     """vaccination control strategy is infectious disease control strategy (entailed chain)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000005"].score("A vaccination control strategy is an infectious disease control strategy.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000005"].score("A vaccination control strategy is not an infectious disease control strategy.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: vaccination → immunization, infectious disease → communicable illness
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000005"].score("An immunization strategy is a communicable illness control strategy.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000005"].score("An immunization strategy is not a communicable illness control strategy.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000005"].score("It helps prevent spread.")
         assert r.parse_success is False
 
-
 class TestQ06:
     """quarantine control strategy is infectious disease control strategy (entailed)"""
-    def test_pass(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000006"].score("Yes, a quarantine control strategy is an infectious disease control strategy.")
+    def test_pass_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000006"].score("A quarantine control strategy is an infectious disease control strategy.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000006"].score("No, a quarantine control strategy is not an infectious disease control strategy.")
+    def test_fail_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000006"].score("A quarantine control strategy is not an infectious disease control strategy.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: infectious disease → communicable illness
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000006"].score("Quarantine is a communicable illness control strategy.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000006"].score("Quarantine is not a communicable illness control strategy.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000006"].score("It involves isolating people.")
         assert r.parse_success is False
 
-
 class TestQ07:
     """vaccination treatment is a vaccination (direct)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000007"].score("Vaccination is classified as a vaccination procedure.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000007"].score("Vaccination is not actually a vaccination in the formal sense.")
+    def test_fail_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000007"].score("Vaccination is not a vaccination in the formal sense.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: vaccination → immunization (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000007"].score("Immunization is classified as a medical procedure.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000007"].score("Immunization is not classified as a medical procedure.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000007"].score("It is an injection given to patients.")
         assert r.parse_success is False
 
-
 class TestQ08:
     """vaccination is a treatment (entailed)"""
-    def test_pass(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000008"].score("Yes, vaccination is a type of treatment.")
+    def test_pass_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000008"].score("Vaccination is a type of treatment.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000008"].score("Vaccination is not a treatment.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: vaccination → immunization (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000008"].score("Immunization is a type of treatment.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000008"].score("Immunization is not a treatment.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000008"].score("It is a preventive measure.")
         assert r.parse_success is False
 
-
 class TestQ09:
     """drug treatment is a treatment (entailed)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000009"].score("Drug treatment is a type of treatment.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000009"].score("Drug treatment is not a treatment.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: drug treatment → pharmaceutical therapy (sim 0.68)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000009"].score("Pharmaceutical therapy is a type of treatment.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000009"].score("Pharmaceutical therapy is not a treatment.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000009"].score("Patients take medication.")
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000009"].score("Patients take medication regularly.")
         assert r.parse_success is False
-
 
 class TestQ10:
     """pathogen is a pathogen (direct)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000010"].score("The causative agent is classified as a pathogen.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000010"].score("The agent is not a pathogen.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: pathogen → microbe (sim 0.76)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000010"].score("The causative agent is a microbe.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000010"].score("The causative agent is not a microbe.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000010"].score("It causes illness in people.")
         assert r.parse_success is False
 
-
 class TestQ11:
     """pathogen is an organism (entailed)"""
-    def test_pass(self, qmap):
-        r = qmap["c3a1e8f0-0001-4000-8000-000000000011"].score("Yes, a pathogen is a type of organism.")
+    def test_pass_exact(self, qmap):
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000011"].score("A pathogen is a type of organism.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000011"].score("A pathogen is not an organism.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: pathogen → microbe (sim 0.76)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000011"].score("A microbe is a type of organism.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000011"].score("A microbe is not an organism.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000011"].score("It is a living thing.")
         assert r.parse_success is False
 
-
 class TestQ12:
     """population infection survey is a population survey (entailed)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000012"].score("A population infection survey is a type of population survey.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000012"].score("A population infection survey is not a population survey.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: uses "community" near survey context — tests multi-word similarity
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000012"].score("A population infection survey is a population survey by definition.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000012"].score("A population infection survey is not a population survey at all.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0001-4000-8000-000000000012"].score("It collects data on illness rates.")
         assert r.parse_success is False
 
 
 # =========================================================================
-# Q13–Q20: Property Restriction — pass / fail / non-parse per question
+# Q13–Q20: Property Restriction — 5 tests per question
 # =========================================================================
 
 class TestQ13:
     """scenario is about ecosystem (pyshacl)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000013"].score("An infectious disease scenario is about an ecosystem.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000013"].score("An infectious disease scenario is not about an ecosystem.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: infectious disease → communicable illness (sim 0.84)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000013"].score("A communicable illness scenario concerns an ecosystem.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000013"].score("A communicable illness scenario does not concern an ecosystem.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0002-4000-8000-000000000013"].score("It models environmental conditions.")
+        r = qmap["c3a1e8f0-0002-4000-8000-000000000013"].score("It models environmental conditions broadly.")
         assert r.parse_success is False
-
 
 class TestQ14:
     """infection acquisition causally upstream of infection (pyshacl)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000014"].score("Infection acquisition leads to infection.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000014"].score("Infection acquisition does not lead to infection.")
         assert r.parse_success and r.score == 0.0
-
+    # Uses exact terms in different phrasing (these terms lack good synonyms)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000014"].score("Infection acquisition causes infection to develop.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000014"].score("Infection acquisition does not cause infection to develop.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0002-4000-8000-000000000014"].score("Exposure causes illness.")
+        r = qmap["c3a1e8f0-0002-4000-8000-000000000014"].score("Exposure to a germ causes illness.")
         assert r.parse_success is False
-
 
 class TestQ15:
     """infection immediately preceded by infection acquisition (pyshacl)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000015"].score("Infection is preceded by infection acquisition.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000015"].score("Infection is not preceded by infection acquisition.")
         assert r.parse_success and r.score == 0.0
-
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000015"].score("Infection follows infection acquisition directly.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000015"].score("Infection does not follow infection acquisition.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000015"].score("One stage follows another in sequence.")
         assert r.parse_success is False
 
-
 class TestQ16:
     """pathogen bearer of pathogenic disposition (pyshacl)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000016"].score("A pathogen bears a pathogenic disposition.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000016"].score("A pathogen does not bear a pathogenic disposition.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: pathogen → microbe (0.76), pathogenic disposition → virulence (0.80)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000016"].score("A microbe possesses virulence.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000016"].score("A microbe does not possess virulence.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000016"].score("It has the ability to cause harm.")
         assert r.parse_success is False
 
-
 class TestQ17:
     """vaccination has participant host (pyshacl)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000017"].score("Vaccination has a host as participant.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000017"].score("Vaccination does not have a host as participant.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: vaccination → immunization (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000017"].score("Immunization involves a host as participant.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000017"].score("Immunization does not involve a host as participant.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000017"].score("A patient receives the injection.")
         assert r.parse_success is False
 
-
 class TestQ18:
     """epidemic occurs in ecosystem (pyshacl)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000018"].score("An epidemic occurs in an ecosystem.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000018"].score("An epidemic does not occur in an ecosystem.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: epidemic → outbreak (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000018"].score("An outbreak occurs in an ecosystem.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000018"].score("An outbreak does not occur in an ecosystem.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0002-4000-8000-000000000018"].score("It happens in a community.")
+        r = qmap["c3a1e8f0-0002-4000-8000-000000000018"].score("It happens in a community setting.")
         assert r.parse_success is False
-
 
 class TestQ19:
     """infection acquisition has participant pathogen (pyshacl)"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000019"].score("Infection acquisition involves a pathogen.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000019"].score("Infection acquisition does not involve a pathogen.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: pathogen → microbe (sim 0.76)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000019"].score("Infection acquisition involves a microbe.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000019"].score("Infection acquisition does not involve a microbe.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0002-4000-8000-000000000019"].score("The microbe enters the body.")
+        r = qmap["c3a1e8f0-0002-4000-8000-000000000019"].score("The germ enters the body.")
         assert r.parse_success is False
-
 
 class TestQ20:
     """vaccination does NOT have pathogen as participant — absence in graph"""
-    def test_pass(self, qmap):
-        # Correctly negating: graph lacks this triple, negation = consistent
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000020"].score("Vaccination does not involve a pathogen as participant.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
-        # Incorrectly affirming: graph lacks this triple, affirmation = inconsistent
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000020"].score("Vaccination involves a pathogen as participant.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: vaccination → immunization (sim 1.0), pathogen → microbe (0.76)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000020"].score("Immunization does not interact with a microbe directly.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0002-4000-8000-000000000020"].score("Immunization interacts with a microbe directly.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0002-4000-8000-000000000020"].score("The procedure targets the immune system.")
         assert r.parse_success is False
 
 
 # =========================================================================
-# Q21–Q25: Disjointness — pass / fail / non-parse per question
+# Q21–Q25: Disjointness — 5 tests per question
 # =========================================================================
 
 class TestQ21:
     """organism disjointWith disorder — pathogen is NOT a disorder"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000021"].score("No, a pathogen cannot be a disorder.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000021"].score("A pathogen is a disorder.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: pathogen → microbe (0.76), disorder → ailment (0.65)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000021"].score("No, a microbe cannot be an ailment.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000021"].score("A microbe is an ailment.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000021"].score("They are fundamentally different categories.")
         assert r.parse_success is False
 
-
 class TestQ22:
     """pathogenic disposition disjointWith disease"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000022"].score("No, a pathogenic disposition is not a disease.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000022"].score("A pathogenic disposition is a disease.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: disease → illness (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000022"].score("No, virulence is not an illness.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000022"].score("Virulence is an illness.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
-        r = qmap["c3a1e8f0-0003-4000-8000-000000000022"].score("They refer to different concepts.")
+        r = qmap["c3a1e8f0-0003-4000-8000-000000000022"].score("They refer to different concepts entirely.")
         assert r.parse_success is False
-
 
 class TestQ23:
     """pathogenic disposition disjointWith immunocompetence"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000023"].score("No, pathogenic disposition and immunocompetence are not the same.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000023"].score("Pathogenic disposition is immunocompetence.")
         assert r.parse_success and r.score == 0.0
-
+    # immunocompetence has zero vectors in en_core_web_md — use exact term
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000023"].score("No, virulence is not the same as immunocompetence.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000023"].score("Virulence is the same as immunocompetence.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000023"].score("These are separate biological attributes.")
         assert r.parse_success is False
 
-
 class TestQ24:
     """host is NOT a disease"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000024"].score("No, a host is not a disease.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000024"].score("A host is a disease.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: disease → illness (sim 1.0)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000024"].score("No, a host is not an illness.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000024"].score("A host is an illness.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000024"].score("The individual harbors the condition.")
         assert r.parse_success is False
 
-
 class TestQ25:
     """material entity disjointWith immaterial entity — pathogen is material"""
-    def test_pass(self, qmap):
+    def test_pass_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000025"].score("No, a pathogen cannot be an immaterial entity.")
         assert r.parse_success and r.score == 1.0
-
-    def test_fail(self, qmap):
+    def test_fail_exact(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000025"].score("A pathogen is an immaterial entity.")
         assert r.parse_success and r.score == 0.0
-
+    # synonym: pathogen → microbe (0.76)
+    def test_pass_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000025"].score("No, a microbe cannot be an immaterial entity.")
+        assert r.parse_success and r.score == 1.0
+    def test_fail_synonym(self, qmap_fuzzy):
+        r = qmap_fuzzy["c3a1e8f0-0003-4000-8000-000000000025"].score("A microbe is an immaterial entity.")
+        assert r.parse_success and r.score == 0.0
     def test_nonparse(self, qmap):
         r = qmap["c3a1e8f0-0003-4000-8000-000000000025"].score("It has physical substance.")
         assert r.parse_success is False
@@ -605,3 +721,24 @@ class TestAllQuestionsParsing:
             for resp in ["", "I don't know.", "Yes.", "No."]:
                 r = q.score(resp)
                 assert isinstance(r, ScoreResult)
+
+
+class TestSimilarityThreshold:
+    """Verify the threshold dial works correctly."""
+    def test_exact_only_at_threshold_1(self, qmap):
+        # "outbreak" should NOT match at threshold=1.0 (exact only)
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000001"].score("A measles outbreak is widespread.")
+        assert r.parse_success is False
+        assert r.fuzz is None  # non-parse → fuzz is N/A
+
+    def test_synonym_matches_at_threshold_065(self, qmap_fuzzy):
+        # "outbreak" SHOULD match "epidemic" at threshold=0.65
+        r = qmap_fuzzy["c3a1e8f0-0001-4000-8000-000000000001"].score("A measles outbreak is widespread.")
+        assert r.parse_success is True
+        assert r.fuzz is True  # matched via similarity fallback
+
+    def test_exact_match_fuzz_false(self, qmap):
+        # exact match should report fuzz=False
+        r = qmap["c3a1e8f0-0001-4000-8000-000000000001"].score("A measles epidemic is an epidemic event.")
+        assert r.parse_success is True
+        assert r.fuzz is False
