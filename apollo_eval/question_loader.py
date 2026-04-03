@@ -139,9 +139,14 @@ def build_question_bank(ontology: Ontology) -> list[Question]:
     """Build the fixed question bank of 25 questions for the measles scenario.
 
     Must be called after the ontology is loaded, reasoned, and vocabulary built.
-    Adds scenario instances to the graph, then creates questions against them.
+    Adds scenario instances to the graph, re-applies reasoning to materialize
+    entailed types for the new instances, then creates questions against them.
     """
     add_scenario_instances(ontology.graph)
+    # Re-reason so entailed types propagate to scenario instances
+    # (e.g., vaccination_strategy a vaccination_control_strategy →
+    #  vaccination_strategy a individual_treatment_control_strategy via subClassOf)
+    owlrl.DeductiveClosure(owlrl.OWLRL_Semantics).expand(ontology.graph)
 
     questions = []
 

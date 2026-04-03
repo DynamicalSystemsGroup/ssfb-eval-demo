@@ -39,9 +39,9 @@ class _StubQuestion(Question):
         self.question_id = question_id
         self.prompt = prompt
 
-    def _check(self, extracted_terms: list[str]) -> bool:
-        # Always returns True for stub purposes
-        return True
+    def _check(self, extracted_terms: list[str], is_negated: bool) -> bool:
+        # Returns True when not negated (affirming)
+        return not is_negated
 
 
 @pytest.fixture(autouse=True)
@@ -129,6 +129,45 @@ class TestExtraction:
         assert result.parse_success is False
 
 
+class TestNegationDetection:
+    # Req: detect "not" via dependency parser
+    def test_detects_not(self):
+        q = _StubQuestion("q-001", "prompt")
+        assert q._detect_negation("Measles is not a vaccination.") is True
+
+    # Req: detect "no" as negation
+    def test_detects_no(self):
+        q = _StubQuestion("q-001", "prompt")
+        assert q._detect_negation("No, measles is different.") is True
+
+    # Req: detect "cannot" as negation
+    def test_detects_cannot(self):
+        q = _StubQuestion("q-001", "prompt")
+        assert q._detect_negation("A pathogen cannot be a disease.") is True
+
+    # Req: detect "never" as negation
+    def test_detects_never(self):
+        q = _StubQuestion("q-001", "prompt")
+        assert q._detect_negation("It is never classified that way.") is True
+
+    # Req: no negation in affirmative response
+    def test_no_negation_in_affirmative(self):
+        q = _StubQuestion("q-001", "prompt")
+        assert q._detect_negation("Yes, measles is an infectious disease.") is False
+
+    # Req: negation affects scoring — affirmed fact scores 1.0
+    def test_affirmed_scores_consistent(self):
+        q = _StubQuestion("q-001", "prompt")
+        result = q.score("Measles is an infectious disease.")
+        assert result.score == 1.0
+
+    # Req: negation affects scoring — negated fact scores 0.0 (for stub that expects affirmation)
+    def test_negated_scores_inconsistent(self):
+        q = _StubQuestion("q-001", "prompt")
+        result = q.score("Measles is not an infectious disease.")
+        assert result.score == 0.0
+
+
 # --- Stage 3b: Concrete subclass tests ---
 
 def _build_scoring_ontology():
@@ -176,32 +215,47 @@ def scoring_ontology():
 
 
 class TestClassMembershipQuestion:
-    # Req: tests [entity] is a [class] via SPARQL ASK
+    # Req: pass — affirming a true fact scores 1.0
     # OWL axiom: :measles_instance a :InfectiousDisease
-    def test_consistent_response(self, scoring_ontology):
+    def test_consistent_affirm(self, scoring_ontology):
         q = ClassMembershipQuestion(
-            question_id="cm-001",
-            prompt="What type of disease is measles?",
-            entity_iri=EX.measles_instance,
-            class_iri=EX.InfectiousDisease,
-            entity_label="measles",
-            class_label="infectious disease",
+            question_id="cm-001", prompt="What type of disease is measles?",
+            entity_iri=EX.measles_instance, class_iri=EX.InfectiousDisease,
+            entity_label="measles", class_label="infectious disease",
         )
         result = q.score("Measles is an infectious disease.")
         assert result.parse_success is True
         assert result.score == 1.0
 
-    # Req: score 0.0 when extracted triple contradicts ontology
-    def test_inconsistent_response(self, scoring_ontology):
+    # Req: fail — negating a true fact scores 0.0
+    def test_inconsistent_negate_true(self, scoring_ontology):
         q = ClassMembershipQuestion(
-            question_id="cm-001",
-            prompt="What type of disease is measles?",
-            entity_iri=EX.measles_instance,
-            class_iri=EX.Vaccination,
-            entity_label="measles",
-            class_label="vaccination",
+            question_id="cm-001", prompt="What type of disease is measles?",
+            entity_iri=EX.measles_instance, class_iri=EX.InfectiousDisease,
+            entity_label="measles", class_label="infectious disease",
         )
-        # measles_instance is not a Vaccination
+        result = q.score("Measles is not an infectious disease.")
+        assert result.parse_success is True
+        assert result.score == 0.0
+
+    # Req: pass — negating a false fact scores 1.0
+    def test_consistent_negate_false(self, scoring_ontology):
+        q = ClassMembershipQuestion(
+            question_id="cm-002", prompt="Is measles a vaccination?",
+            entity_iri=EX.measles_instance, class_iri=EX.Vaccination,
+            entity_label="measles", class_label="vaccination",
+        )
+        result = q.score("No, measles is not a vaccination.")
+        assert result.parse_success is True
+        assert result.score == 1.0
+
+    # Req: fail — affirming a false fact scores 0.0
+    def test_inconsistent_affirm_false(self, scoring_ontology):
+        q = ClassMembershipQuestion(
+            question_id="cm-002", prompt="Is measles a vaccination?",
+            entity_iri=EX.measles_instance, class_iri=EX.Vaccination,
+            entity_label="measles", class_label="vaccination",
+        )
         result = q.score("Measles is a vaccination.")
         assert result.parse_success is True
         assert result.score == 0.0
@@ -209,14 +263,10 @@ class TestClassMembershipQuestion:
     # Req: entailed class membership via reasoning (subclass transitivity)
     def test_entailed_membership(self, scoring_ontology):
         q = ClassMembershipQuestion(
-            question_id="cm-002",
-            prompt="Is measles a disease?",
-            entity_iri=EX.measles_instance,
-            class_iri=EX.Disease,
-            entity_label="measles",
-            class_label="disease",
+            question_id="cm-003", prompt="Is measles a disease?",
+            entity_iri=EX.measles_instance, class_iri=EX.Disease,
+            entity_label="measles", class_label="disease",
         )
-        # Entailed: measles_instance a Disease (via InfectiousDisease subClassOf Disease)
         result = q.score("Measles is a disease.")
         assert result.parse_success is True
         assert result.score == 1.0
@@ -224,136 +274,107 @@ class TestClassMembershipQuestion:
     # Req: parse failure when response has no ontology terms
     def test_parse_failure(self, scoring_ontology):
         q = ClassMembershipQuestion(
-            question_id="cm-001",
-            prompt="What type of disease is measles?",
-            entity_iri=EX.measles_instance,
-            class_iri=EX.InfectiousDisease,
-            entity_label="measles",
-            class_label="infectious disease",
+            question_id="cm-001", prompt="What type of disease is measles?",
+            entity_iri=EX.measles_instance, class_iri=EX.InfectiousDisease,
+            entity_label="measles", class_label="infectious disease",
         )
         result = q.score("It is a common childhood illness.")
         assert result.parse_success is False
 
-    # Req: at least one question must exercise SPARQL ASK only
-    def test_uses_sparql_ask(self, scoring_ontology):
-        q = ClassMembershipQuestion(
-            question_id="cm-001",
-            prompt="prompt",
-            entity_iri=EX.measles_instance,
-            class_iri=EX.InfectiousDisease,
-            entity_label="measles",
-            class_label="infectious disease",
-        )
-        # Verify by checking the method exists and produces correct result
-        result = q.score("Measles is an infectious disease.")
-        assert result.score == 1.0
-
 
 class TestPropertyRestrictionQuestion:
-    # Req: tests [entity] has [property] [value] via pyshacl validation
+    # Req: pass — affirming a true property scores 1.0 (pyshacl)
     # OWL axiom: :measles_instance :hasTransmissionMode :airborne_instance
-    def test_consistent_response(self, scoring_ontology):
+    def test_consistent_affirm(self, scoring_ontology):
         q = PropertyRestrictionQuestion(
-            question_id="pr-001",
-            prompt="How is measles transmitted?",
-            entity_iri=EX.measles_instance,
-            property_iri=EX.hasTransmissionMode,
+            question_id="pr-001", prompt="How is measles transmitted?",
+            entity_iri=EX.measles_instance, property_iri=EX.hasTransmissionMode,
             value_iri=EX.airborne_instance,
-            entity_label="measles",
-            value_label="airborne",
+            entity_label="measles", value_label="airborne",
         )
         result = q.score("Measles is transmitted via airborne routes.")
         assert result.parse_success is True
         assert result.score == 1.0
 
-    # Req: score 0.0 when the expected property-value does not hold in the graph
-    def test_inconsistent_when_value_not_in_graph(self, scoring_ontology):
-        # Question expects measles -> hasTransmissionMode -> vaccination_instance,
-        # but the graph only has measles -> hasTransmissionMode -> airborne_instance
+    # Req: fail — negating a true property scores 0.0
+    def test_inconsistent_negate_true(self, scoring_ontology):
         q = PropertyRestrictionQuestion(
-            question_id="pr-002",
-            prompt="Is measles transmitted via vaccination?",
-            entity_iri=EX.measles_instance,
-            property_iri=EX.hasTransmissionMode,
+            question_id="pr-001", prompt="How is measles transmitted?",
+            entity_iri=EX.measles_instance, property_iri=EX.hasTransmissionMode,
+            value_iri=EX.airborne_instance,
+            entity_label="measles", value_label="airborne",
+        )
+        result = q.score("Measles is not transmitted via airborne routes.")
+        assert result.parse_success is True
+        assert result.score == 0.0
+
+    # Req: pass — negating a false property scores 1.0
+    def test_consistent_negate_false(self, scoring_ontology):
+        q = PropertyRestrictionQuestion(
+            question_id="pr-002", prompt="Is measles transmitted via vaccination?",
+            entity_iri=EX.measles_instance, property_iri=EX.hasTransmissionMode,
             value_iri=EX.vaccination_instance,  # does not exist in graph
-            entity_label="measles",
-            value_label="vaccination",
+            entity_label="measles", value_label="vaccination",
+        )
+        result = q.score("Measles is not transmitted via vaccination.")
+        assert result.parse_success is True
+        assert result.score == 1.0
+
+    # Req: fail — affirming a false property scores 0.0
+    def test_inconsistent_affirm_false(self, scoring_ontology):
+        q = PropertyRestrictionQuestion(
+            question_id="pr-002", prompt="Is measles transmitted via vaccination?",
+            entity_iri=EX.measles_instance, property_iri=EX.hasTransmissionMode,
+            value_iri=EX.vaccination_instance,
+            entity_label="measles", value_label="vaccination",
         )
         result = q.score("Measles is transmitted via vaccination.")
         assert result.parse_success is True
         assert result.score == 0.0
 
-    # Req: at least one question must exercise pyshacl validation
-    def test_uses_pyshacl(self, scoring_ontology):
-        q = PropertyRestrictionQuestion(
-            question_id="pr-001",
-            prompt="prompt",
-            entity_iri=EX.measles_instance,
-            property_iri=EX.hasTransmissionMode,
-            value_iri=EX.airborne_instance,
-            entity_label="measles",
-            value_label="airborne",
-        )
-        result = q.score("Measles spreads by airborne transmission.")
-        assert result.score == 1.0
-
     # Req: parse failure when no terms extracted
     def test_parse_failure(self, scoring_ontology):
         q = PropertyRestrictionQuestion(
-            question_id="pr-001",
-            prompt="How is measles transmitted?",
-            entity_iri=EX.measles_instance,
-            property_iri=EX.hasTransmissionMode,
+            question_id="pr-001", prompt="How is measles transmitted?",
+            entity_iri=EX.measles_instance, property_iri=EX.hasTransmissionMode,
             value_iri=EX.airborne_instance,
-            entity_label="measles",
-            value_label="airborne",
+            entity_label="measles", value_label="airborne",
         )
         result = q.score("Through tiny particles in the air.")
         assert result.parse_success is False
 
 
 class TestDisjointnessQuestion:
-    # Req: tests [entity] cannot [property] [value] via SPARQL ASK for disjointness
+    # Req: pass — negating membership in disjoint class scores 1.0
     # OWL axiom: :InfectiousDisease owl:disjointWith :Vaccination
-    def test_consistent_response(self, scoring_ontology):
+    def test_consistent_negate(self, scoring_ontology):
         q = DisjointnessQuestion(
-            question_id="dj-001",
-            prompt="Can measles be classified as a vaccination?",
-            entity_iri=EX.measles_instance,
-            disjoint_class_iri=EX.Vaccination,
-            entity_label="measles",
-            disjoint_class_label="vaccination",
+            question_id="dj-001", prompt="Can measles be classified as a vaccination?",
+            entity_iri=EX.measles_instance, disjoint_class_iri=EX.Vaccination,
+            entity_label="measles", disjoint_class_label="vaccination",
         )
-        # Response correctly denies membership in the disjoint class
         result = q.score("No, measles is not a vaccination.")
         assert result.parse_success is True
         assert result.score == 1.0
 
-    # Req: score 0.0 when response affirms membership in disjoint class
-    def test_inconsistent_response(self, scoring_ontology):
+    # Req: fail — affirming membership in disjoint class scores 0.0
+    def test_inconsistent_affirm(self, scoring_ontology):
         q = DisjointnessQuestion(
-            question_id="dj-001",
-            prompt="Can measles be classified as a vaccination?",
-            entity_iri=EX.measles_instance,
-            disjoint_class_iri=EX.Vaccination,
-            entity_label="measles",
-            disjoint_class_label="vaccination",
+            question_id="dj-001", prompt="Can measles be classified as a vaccination?",
+            entity_iri=EX.measles_instance, disjoint_class_iri=EX.Vaccination,
+            entity_label="measles", disjoint_class_label="vaccination",
         )
-        # Response incorrectly affirms — but we check the graph, not sentiment
-        # The check verifies the entity is NOT a member of the disjoint class
         result = q.score("Yes, measles is a vaccination.")
         assert result.parse_success is True
-        assert result.score == 1.0  # Graph says they're disjoint, so entity cannot be Vaccination
+        assert result.score == 0.0
 
     # Req: no exceptions from score()
-    def test_no_exceptions(self, scoring_ontology):
+    def test_parse_failure(self, scoring_ontology):
         q = DisjointnessQuestion(
-            question_id="dj-001",
-            prompt="prompt",
-            entity_iri=EX.measles_instance,
-            disjoint_class_iri=EX.Vaccination,
-            entity_label="measles",
-            disjoint_class_label="vaccination",
+            question_id="dj-001", prompt="prompt",
+            entity_iri=EX.measles_instance, disjoint_class_iri=EX.Vaccination,
+            entity_label="measles", disjoint_class_label="vaccination",
         )
         result = q.score("")
         assert isinstance(result, ScoreResult)
+        assert result.parse_success is False
