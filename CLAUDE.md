@@ -13,9 +13,11 @@ apollo_eval/
     question_loader.py   # 25 concrete questions for measles epidemic scenario
     policy.py            # PolicyEngine — semantic state feedback loop
     model_client.py      # ModelClient ABC + OllamaClient implementation
-    evaluation.py        # EvaluationLayer — post-processing, scoring, DataFrame
+    evaluation.py        # EvaluationLayer — post-hoc scoring, summaries, DataFrame
     utils.py             # lookup() utility
-demo.py                  # End-to-end orchestration script
+demo.py                  # End-to-end CLI orchestration
+calibrate_threshold.py   # Similarity threshold calibration tool
+analysis.ipynb           # Jupyter notebook — run experiment + visualize results
 ```
 
 ## Environment
@@ -28,7 +30,8 @@ demo.py                  # End-to-end orchestration script
 ## Commands
 
 - Run tests: `.venv/bin/pytest`
-- Run demo: `.venv/bin/python demo.py --runs 5`
+- Run demo: `.venv/bin/python demo.py --runs 5 --verbose`
+- Run analysis notebook: `jupyter notebook analysis.ipynb`
 - Calibrate similarity threshold: `.venv/bin/python calibrate_threshold.py --threshold 0.65`
 - Install deps: `uv pip install -r requirements.txt`
 - Install spaCy model: `.venv/bin/python -m spacy download en_core_web_md`
@@ -36,6 +39,6 @@ demo.py                  # End-to-end orchestration script
 ## Conventions
 
 - Test-driven development: tests before implementation
-- Scientific Python only: rdflib, owlrl, spacy, pyshacl, pandas, pytest
+- Scientific Python only: rdflib, owlrl, spacy, pyshacl, pandas, matplotlib, seaborn, pytest
 - All filesystem paths and API URLs must be configurable — no hardcoded paths
 - Each test includes an inline comment citing the requirement it tests
