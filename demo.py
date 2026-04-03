@@ -72,12 +72,19 @@ def main():
     print(f"\nRunning {args.runs} trajectory run(s)...")
     for i in range(args.runs):
         client = OllamaClient(model=args.model)  # fresh per run
+        run_metadata = {
+            "model": client.model,
+            "ontology_source": loader.owl_path,
+            "similarity_threshold": args.similarity_threshold,
+            "exit_criteria": "exhaust_pool",
+        }
         engine = PolicyEngine(
             questions=questions,
             client=client,
             seed=args.seed + i,
             scenario_iri=SCENARIO_IRI,
             on_turn=print_turn if args.verbose else None,
+            metadata=run_metadata,
         )
         if args.verbose:
             print(f"\n--- Run {i + 1}/{args.runs} (seed={args.seed + i}) ---")

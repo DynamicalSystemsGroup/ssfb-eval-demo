@@ -10,6 +10,7 @@ History h_t is the full realization of (u, y) pairs (grows monotonically).
 import json
 import random
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -36,6 +37,7 @@ class PolicyEngine:
         scenario_iri: str,
         exit_criteria: Callable[[list], bool] = default_exit_criteria,
         on_turn: Callable[[dict], None] | None = None,
+        metadata: dict | None = None,
     ):
         self.questions = list(questions)  # defensive copy — this IS the memory pool
         self.client = client
@@ -43,6 +45,7 @@ class PolicyEngine:
         self.scenario_iri = scenario_iri
         self.exit_criteria = exit_criteria
         self.on_turn = on_turn
+        self.metadata = metadata or {}
         self._rng = random.Random(seed)
         self.run_id = str(uuid.uuid4())
         self.history: list[tuple[str, str]] = []
@@ -83,6 +86,18 @@ class PolicyEngine:
 
         return turn
 
+    def _build_trajectory_data(self) -> dict:
+        """Build the full trajectory dict with metadata."""
+        data = {
+            "run_id": self.run_id,
+            "seed": self.seed,
+            "scenario_iri": self.scenario_iri,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            **self.metadata,
+            "turns": self.trajectory,
+        }
+        return data
+
     def run(self) -> dict:
         """Run the full trajectory until exit criteria are met.
 
@@ -90,12 +105,7 @@ class PolicyEngine:
         """
         while not self.exit_criteria(self.questions):
             self.step()
-        return {
-            "run_id": self.run_id,
-            "seed": self.seed,
-            "scenario_iri": self.scenario_iri,
-            "turns": self.trajectory,
-        }
+        return self._build_trajectory_data()
 
     def save(self, trajectory_dir: str) -> str:
         """Write trajectory JSON to the given directory.
@@ -103,11 +113,5 @@ class PolicyEngine:
         Returns the path to the written file.
         """
         path = Path(trajectory_dir) / f"{self.run_id}.json"
-        trajectory_data = {
-            "run_id": self.run_id,
-            "seed": self.seed,
-            "scenario_iri": self.scenario_iri,
-            "turns": self.trajectory,
-        }
-        path.write_text(json.dumps(trajectory_data, indent=2))
+        path.write_text(json.dumps(self._build_trajectory_data(), indent=2))
         return str(path)
