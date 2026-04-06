@@ -2,7 +2,7 @@
 
 A minimal demonstration of **semantic state feedback** — a framework for evaluating LLM consistency using ontology-grounded probing. The system treats an LLM as a dynamical system with hidden state, applies a policy parameterized by the [APOLLO-SV](http://purl.obolibrary.org/obo/apollo_sv.owl) OWL ontology, and scores responses for consistency against ontological facts derived via OWL reasoning.
 
-For the theoretical framing, see [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md).
+For the theoretical framing, see [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md). For the structured literature review organized by research cluster, see [`docs/litreview.jsx`](docs/litreview.jsx).
 
 ## How It Works
 
@@ -154,5 +154,6 @@ calibrate_threshold.py   # Similarity threshold calibration tool
 analysis.ipynb           # Jupyter notebook — run experiment + visualize results
 trajectories/            # Trajectory JSON output (one dir per experiment batch)
 docs/                    # Design documents and future considerations
+    litreview.jsx        # Interactive literature review (React component)
 tests/                   # pytest test suite (one file per module)
 ```

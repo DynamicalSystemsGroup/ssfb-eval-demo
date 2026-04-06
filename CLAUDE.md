@@ -21,6 +21,7 @@ calibrate_threshold.py   # Similarity threshold calibration tool
 analysis.ipynb           # Jupyter notebook — run experiment + visualize results
 trajectories/            # Trajectory JSON output (one dir per experiment batch)
 docs/                    # Design documents and future considerations
+docs/litreview.jsx       # Interactive literature review (React component)
 ```
 
 ## Environment
