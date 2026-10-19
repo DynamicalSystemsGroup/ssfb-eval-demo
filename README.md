@@ -163,6 +163,11 @@ tests/                   # pytest test suite (one file per module)
 - **Jamsheed Shorish** (Dynamical Systems Group), on the theoretical model side: the semantic state feedback formalism in [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md).
 - **Julie Hollek** (Humane Intelligence), on the practical example side: the evaluation demo of probing an LLM and scoring its responses.
 
+Related work with Humane Intelligence:
+
+- J. K. Hollek, M. Zargham, M. Kumar, "Ontology-Based Contextual AI Evaluations (OB-CAIE) Methodology," [arXiv:2610.00529](https://arxiv.org/abs/2610.00529) (2026).
+- [`caie-spec`](https://github.com/DynamicalSystemsGroup/caie-spec): Contextual AI Evaluation as an executable specification, including the measles evaluation of the chatbot example.
+
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE). Copyright 2026 Block Science, Inc. (d/b/a Dynamical Systems Group).
