@@ -29,7 +29,7 @@ For the theoretical framing, see [`docs/semantic_state_feedback_policy.md`](docs
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-org>/ssfb-eval-demo.git
+git clone https://github.com/DynamicalSystemsGroup/ssfb-eval-demo.git
 cd ssfb-eval-demo
 
 # Create and activate virtual environment (using uv)
@@ -157,3 +157,12 @@ docs/                    # Design documents and future considerations
     litreview.jsx        # Interactive literature review (React component)
 tests/                   # pytest test suite (one file per module)
 ```
+
+## Acknowledgments
+
+- **Jamsheed Shorish** (Dynamical Systems Group), on the theoretical model side: the semantic state feedback formalism in [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md).
+- **Julie Hollek** (Humane Intelligence), on the practical example side: the evaluation demo of probing an LLM and scoring its responses.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). Copyright 2026 Block Science, Inc. (d/b/a Dynamical Systems Group).

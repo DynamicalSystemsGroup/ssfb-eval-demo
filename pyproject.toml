@@ -3,6 +3,7 @@ name = "apollo-eval"
 version = "0.1.0"
 description = "Semantic state feedback evaluation system for LLMs using APOLLO-SV ontology"
 readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [
     "rdflib>=7.0",
