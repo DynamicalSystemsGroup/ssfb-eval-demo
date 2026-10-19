@@ -4,6 +4,14 @@ A minimal demonstration of **semantic state feedback** — a framework for evalu
 
 For the theoretical framing, see [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md). For the structured literature review organized by research cluster, see [`docs/litreview.jsx`](docs/litreview.jsx).
 
+## About This Demo
+
+This repository is a demo, not the main body of the work, which is ongoing. Its results, including the operator comparison in [`comparison_analysis.ipynb`](comparison_analysis.ipynb), are feasibility results and are published unchanged. The ongoing work continues in:
+
+- [`caie-spec`](https://github.com/DynamicalSystemsGroup/caie-spec): Contextual AI Evaluation as an executable specification, developed with Humane Intelligence.
+- J. K. Hollek, M. Zargham, M. Kumar, "Ontology-Based Contextual AI Evaluations (OB-CAIE) Methodology," [arXiv:2610.00529](https://arxiv.org/abs/2610.00529) (2026).
+- [`ADCS-lifecycle-demo`](https://github.com/DynamicalSystemsGroup/ADCS-lifecycle-demo): accountability and behavioral modeling of automated systems that are not necessarily generative AI. Its example is an aerospace control system, and our broader argument is that the same paradigm applies to AI systems. It is a controls setting, the home of methods such as system identification, which this demo carries over to LLMs.
+
 ## How It Works
 
 1. **Load and reason** — The APOLLO-SV ontology is loaded and expanded to its deductive closure via OWL RL reasoning. All entailed triples are materialized before any questions are generated.
@@ -157,11 +165,6 @@ tests/                   # pytest test suite (one file per module)
 
 - **Jamsheed Shorish** (Dynamical Systems Group), on the theoretical model side: the semantic state feedback formalism in [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md).
 - **Julie Hollek** (Humane Intelligence), on the practical example side: the evaluation demo of probing an LLM and scoring its responses.
-
-Related work with Humane Intelligence:
-
-- J. K. Hollek, M. Zargham, M. Kumar, "Ontology-Based Contextual AI Evaluations (OB-CAIE) Methodology," [arXiv:2610.00529](https://arxiv.org/abs/2610.00529) (2026).
-- [`caie-spec`](https://github.com/DynamicalSystemsGroup/caie-spec): Contextual AI Evaluation as an executable specification, including the measles evaluation of the chatbot example.
 
 ## License
 
