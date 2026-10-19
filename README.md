@@ -170,4 +170,4 @@ Related work with Humane Intelligence:
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE). Copyright 2026 Block Science, Inc. (d/b/a Dynamical Systems Group).
+Licensed under the [Apache License 2.0](LICENSE). Copyright 2026 Dynamical Systems Group.
