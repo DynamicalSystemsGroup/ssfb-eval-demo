@@ -142,23 +142,31 @@ pytest
 
 ```text
 apollo_eval/
-    ontology.py          # Ontology and ScoreResult dataclasses
-    ontology_loader.py   # OWL loading, reasoning, preprocessing
-    vocab.py             # Vocabulary extraction and PhraseMatcher construction
-    question.py          # Question base class and concrete subclasses
-    question_loader.py   # 25 concrete questions for measles epidemic scenario
-    policy.py            # Semantic state feedback policy engine
-    model_client.py      # LLM client abstraction (Ollama implementation)
-    evaluation.py        # Post-hoc scoring and DataFrame construction
-    utils.py             # Trajectory lookup utility
-demo.py                  # End-to-end CLI orchestration
-summary_stats.py         # Post-hoc summary statistics for completed experiments
-calibrate_threshold.py   # Similarity threshold calibration tool
-analysis.ipynb           # Jupyter notebook — run experiment + visualize results
-trajectories/            # Trajectory JSON output (one dir per experiment batch)
-docs/                    # Design documents and future considerations
-    litreview.jsx        # Interactive literature review (React component)
-tests/                   # pytest test suite (one file per module)
+    ontology.py            # Ontology and ScoreResult dataclasses
+    ontology_loader.py     # OWL loading, reasoning, preprocessing
+    vocab.py               # Vocabulary extraction and PhraseMatcher construction
+    question.py            # Question base class and concrete subclasses
+    question_loader.py     # 25 concrete questions for measles epidemic scenario
+    policy.py              # Semantic state feedback policy engine
+    model_client.py        # LLM client abstraction (Ollama implementation)
+    evaluation.py          # Post-hoc scoring and DataFrame construction
+    ontology_client.py     # OWL-based symbolic operator (Model B) for operator comparison
+    comparison_engine.py   # Comparison engine for operator A vs B evaluation
+    divergence.py          # Divergence measurement data structures for operator comparison
+    utils.py               # Trajectory lookup utility
+demo.py                    # End-to-end CLI orchestration
+compare_demo.py            # Operator comparison demo: Model A (LLM) vs Model B (OWL belief graph)
+summary_stats.py           # Post-hoc summary statistics for completed experiments
+calibrate_threshold.py     # Similarity threshold calibration tool
+analysis.ipynb             # Jupyter notebook — run experiment + visualize results
+comparison_analysis.ipynb  # Jupyter notebook — operator comparison results and interpretation
+trajectories/              # Trajectory JSON output (one dir per experiment batch)
+docs/
+    semantic_state_feedback_policy.md  # Theoretical framing
+    ontology_scope_and_scaling.md      # Ontology scope and scaling: from demo to framework
+    question_review.md                 # Question bank review with mocked test responses
+    litreview.jsx                      # Interactive literature review (React component)
+tests/                     # pytest test suite (one file per module)
 ```
 
 ## Acknowledgments
