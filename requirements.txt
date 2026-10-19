@@ -1,6 +1,7 @@
 rdflib>=7.0
 owlrl>=7.0
 spacy>=3.7
+en-core-web-md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl
 pyshacl>=0.26
 pandas>=2.0
 pytest>=8.0

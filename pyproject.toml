@@ -3,6 +3,7 @@ name = "apollo-eval"
 version = "0.1.0"
 description = "Semantic state feedback evaluation system for LLMs using APOLLO-SV ontology"
 readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [
     "rdflib>=7.0",
@@ -11,6 +12,7 @@ dependencies = [
     "pyshacl>=0.26",
     "pandas>=2.1",
     "requests>=2.31",
+    "en-core-web-md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl",
 ]
 
 [dependency-groups]

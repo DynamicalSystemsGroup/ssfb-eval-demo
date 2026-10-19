@@ -21,3 +21,6 @@ build/
 
 # Project-specific
 *.owl
+
+# Local work-package records (not published)
+work-packages/

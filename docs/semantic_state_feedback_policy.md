@@ -117,3 +117,9 @@ This matters for a reason that goes beyond evaluation methodology. If the learne
 | $\pi_\omega : M \to \mathcal{U}$ | Policy | Semantic state feedback policy |
 | Exit criteria | Predicate on $h_t$ | Termination condition |
 | Evaluation | Function of $h_T$ and $\omega$ | Grounded scoring — same object as reference model |
+
+---
+
+## Acknowledgments
+
+The theoretical model in this document was developed with **Jamsheed Shorish** (Dynamical Systems Group). The practical example that exercises it (this repository's evaluation demo) was developed in collaboration with **Julie Hollek** (Humane Intelligence).

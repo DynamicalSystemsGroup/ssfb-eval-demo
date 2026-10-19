@@ -4,6 +4,14 @@ A minimal demonstration of **semantic state feedback** — a framework for evalu
 
 For the theoretical framing, see [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md). For the structured literature review organized by research cluster, see [`docs/litreview.jsx`](docs/litreview.jsx).
 
+## About This Demo
+
+This repository is a demo, not the main body of the work, which is ongoing. Its results, including the operator comparison in [`comparison_analysis.ipynb`](comparison_analysis.ipynb), are feasibility results and are published unchanged. The ongoing work continues in:
+
+- [`caie-spec`](https://github.com/DynamicalSystemsGroup/caie-spec): Contextual AI Evaluation as an executable specification, developed with Humane Intelligence.
+- J. K. Hollek, M. Zargham, M. Kumar, "Ontology-Based Contextual AI Evaluations (OB-CAIE) Methodology," [arXiv:2610.00529](https://arxiv.org/abs/2610.00529) (2026).
+- [`ADCS-lifecycle-demo`](https://github.com/DynamicalSystemsGroup/ADCS-lifecycle-demo): accountability and behavioral modeling of automated systems that are not necessarily generative AI. Its example is an aerospace control system, and our broader argument is that the same paradigm applies to AI systems. It is a controls setting, the home of methods such as system identification, which this demo carries over to LLMs.
+
 ## How It Works
 
 1. **Load and reason** — The APOLLO-SV ontology is loaded and expanded to its deductive closure via OWL RL reasoning. All entailed triples are materialized before any questions are generated.
@@ -29,18 +37,13 @@ For the theoretical framing, see [`docs/semantic_state_feedback_policy.md`](docs
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-org>/ssfb-eval-demo.git
+git clone https://github.com/DynamicalSystemsGroup/ssfb-eval-demo.git
 cd ssfb-eval-demo
 
-# Create and activate virtual environment (using uv)
-uv venv .venv
+# Create the virtual environment and install the locked dependencies,
+# including the spaCy model (en_core_web_md, md for word vectors used in similarity matching)
+uv sync
 source .venv/bin/activate
-
-# Install dependencies
-uv pip install -r requirements.txt
-
-# Download spaCy model (md for word vectors used in similarity matching)
-python -m spacy download en_core_web_md
 ```
 
 ## Usage
@@ -139,21 +142,40 @@ pytest
 
 ```text
 apollo_eval/
-    ontology.py          # Ontology and ScoreResult dataclasses
-    ontology_loader.py   # OWL loading, reasoning, preprocessing
-    vocab.py             # Vocabulary extraction and PhraseMatcher construction
-    question.py          # Question base class and concrete subclasses
-    question_loader.py   # 25 concrete questions for measles epidemic scenario
-    policy.py            # Semantic state feedback policy engine
-    model_client.py      # LLM client abstraction (Ollama implementation)
-    evaluation.py        # Post-hoc scoring and DataFrame construction
-    utils.py             # Trajectory lookup utility
-demo.py                  # End-to-end CLI orchestration
-summary_stats.py         # Post-hoc summary statistics for completed experiments
-calibrate_threshold.py   # Similarity threshold calibration tool
-analysis.ipynb           # Jupyter notebook — run experiment + visualize results
-trajectories/            # Trajectory JSON output (one dir per experiment batch)
-docs/                    # Design documents and future considerations
-    litreview.jsx        # Interactive literature review (React component)
-tests/                   # pytest test suite (one file per module)
+    ontology.py            # Ontology and ScoreResult dataclasses
+    ontology_loader.py     # OWL loading, reasoning, preprocessing
+    vocab.py               # Vocabulary extraction and PhraseMatcher construction
+    question.py            # Question base class and concrete subclasses
+    question_loader.py     # 25 concrete questions for measles epidemic scenario
+    policy.py              # Semantic state feedback policy engine
+    model_client.py        # LLM client abstraction (Ollama implementation)
+    evaluation.py          # Post-hoc scoring and DataFrame construction
+    ontology_client.py     # OWL-based symbolic operator (Model B) for operator comparison
+    comparison_engine.py   # Comparison engine for operator A vs B evaluation
+    divergence.py          # Divergence measurement data structures for operator comparison
+    utils.py               # Trajectory lookup utility
+demo.py                    # End-to-end CLI orchestration
+compare_demo.py            # Operator comparison demo: Model A (LLM) vs Model B (OWL belief graph)
+summary_stats.py           # Post-hoc summary statistics for completed experiments
+calibrate_threshold.py     # Similarity threshold calibration tool
+analysis.ipynb             # Jupyter notebook — run experiment + visualize results
+comparison_analysis.ipynb  # Jupyter notebook — operator comparison results and interpretation
+trajectories/              # Trajectory JSON output (one dir per experiment batch)
+docs/
+    semantic_state_feedback_policy.md  # Theoretical framing
+    ontology_scope_and_scaling.md      # Ontology scope and scaling: from demo to framework
+    question_review.md                 # Question bank review with mocked test responses
+    litreview.jsx                      # Interactive literature review (React component)
+tests/                     # pytest test suite (one file per module)
 ```
+
+## Acknowledgments
+
+- **Jamsheed Shorish** (Dynamical Systems Group), on the theoretical model side: the semantic state feedback formalism in [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md).
+- **Julie Hollek** (Humane Intelligence), on the practical example side: the evaluation demo of probing an LLM and scoring its responses.
+
+Related work with Humane Intelligence: the OB-CAIE paper ([arXiv:2610.00529](https://arxiv.org/abs/2610.00529)) and [`caie-spec`](https://github.com/DynamicalSystemsGroup/caie-spec).
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). Copyright 2026 Dynamical Systems Group.
