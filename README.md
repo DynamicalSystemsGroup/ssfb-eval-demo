@@ -166,6 +166,8 @@ tests/                   # pytest test suite (one file per module)
 - **Jamsheed Shorish** (Dynamical Systems Group), on the theoretical model side: the semantic state feedback formalism in [`docs/semantic_state_feedback_policy.md`](docs/semantic_state_feedback_policy.md).
 - **Julie Hollek** (Humane Intelligence), on the practical example side: the evaluation demo of probing an LLM and scoring its responses.
 
+Related work with Humane Intelligence: the OB-CAIE paper ([arXiv:2610.00529](https://arxiv.org/abs/2610.00529)) and [`caie-spec`](https://github.com/DynamicalSystemsGroup/caie-spec).
+
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE). Copyright 2026 Dynamical Systems Group.
