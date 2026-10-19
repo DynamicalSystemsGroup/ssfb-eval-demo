@@ -32,15 +32,10 @@ For the theoretical framing, see [`docs/semantic_state_feedback_policy.md`](docs
 git clone https://github.com/DynamicalSystemsGroup/ssfb-eval-demo.git
 cd ssfb-eval-demo
 
-# Create and activate virtual environment (using uv)
-uv venv .venv
+# Create the virtual environment and install the locked dependencies,
+# including the spaCy model (en_core_web_md, md for word vectors used in similarity matching)
+uv sync
 source .venv/bin/activate
-
-# Install dependencies
-uv pip install -r requirements.txt
-
-# Download spaCy model (md for word vectors used in similarity matching)
-python -m spacy download en_core_web_md
 ```
 
 ## Usage
